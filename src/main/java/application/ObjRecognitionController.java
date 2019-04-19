@@ -6,16 +6,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import org.opencv.core.Core;
-import org.opencv.core.Mat;
-import org.opencv.core.MatOfInt;
-import org.opencv.core.MatOfInt4;
-import org.opencv.core.MatOfPoint;
-import org.opencv.core.Point;
-import org.opencv.core.Rect;
-import org.opencv.core.Scalar;
-import org.opencv.core.Size;
+import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
+import org.opencv.video.Video;
 import org.opencv.videoio.VideoCapture;
 
 import javafx.beans.property.ObjectProperty;
@@ -28,6 +21,8 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.text.Text;
 
+import static application.Main.saveImage;
+
 /**
  * The controller associated with the only view of our application. The
  * application logic is implemented here. It handles the button for
@@ -38,15 +33,22 @@ import javafx.scene.text.Text;
  */
 public class ObjRecognitionController
 {
+	@FXML
+	public Button camShiftButton;
+
+	public static final ImageView cropImageView = new ImageView();
 	// FXML camera button
 	@FXML
 	private Button cameraButton;
 	// the FXML area for showing the current frame
 	@FXML
 	private ImageView originalFrame;
-	// the FXML area for showing the mask
+	// the FXML area for showing the biraryMask
 	@FXML
 	private ImageView maskImage;
+
+	@FXML
+	public Slider blur;
 	// FXML slider for setting HSV ranges
 	@FXML
 	private Slider hueStart;
@@ -72,10 +74,20 @@ public class ObjRecognitionController
 	private VideoCapture capture = new VideoCapture();
 	// a flag to change the button behavior
 	private boolean cameraActive;
-	
+
 	// property for object binding
 	private ObjectProperty<String> hsvValuesProp;
-		
+
+	private static boolean isTracking = false;
+
+	private Point trackPoint1 = new Point(200, 125);
+	private Point trackPoint2 = new Point(450, 375);
+	private Rect trackRectangle = new Rect(trackPoint1, trackPoint2);
+
+	private Mat biraryMask = new Mat();
+	private Mat blurredImage = new Mat();
+	private Mat hsvImage = new Mat();
+
 	/**
 	 * The action triggered by pushing the button on the GUI
 	 */
@@ -90,6 +102,7 @@ public class ObjRecognitionController
 		// set a fixed width for all the image to show and preserve image ratio
 		this.imageViewProperties(this.originalFrame, 400);
 		this.imageViewProperties(this.maskImage, 400);
+		this.imageViewProperties(this.cropImageView, 400);
 		
 		if (!this.cameraActive)
 		{
@@ -102,18 +115,13 @@ public class ObjRecognitionController
 				this.cameraActive = true;
 				
 				// grab a frame every 33 ms (30 frames/sec)
-				Runnable frameGrabber = new Runnable() {
-					
-					@Override
-					public void run()
-					{
-						// effectively grab and process a single frame
-						Mat frame = grabFrame();
-						// convert and show the frame
-						Image imageToShow = Utils.mat2Image(frame);
-						updateImageView(originalFrame, imageToShow);
-					}
-				};
+				Runnable frameGrabber = () -> {
+                    // effectively grab and process a single frame
+                    Mat frame = grabFrame();
+                    // convert and show the frame
+                    Image imageToShow = Utils.mat2Image(frame);
+                    updateImageView(originalFrame, imageToShow);
+                };
 				
 				this.timer = Executors.newSingleThreadScheduledExecutor();
 				this.timer.scheduleAtFixedRate(frameGrabber, 0, 33, TimeUnit.MILLISECONDS);
@@ -138,6 +146,57 @@ public class ObjRecognitionController
 			this.stopAcquisition();
 		}
 	}
+
+	@FXML
+	private void startTracking() {
+		if(isTracking){
+			camShiftButton.setText("Start tracking");
+			isTracking = false;
+			trackRectangle = new Rect(trackPoint1, trackPoint2);
+		}
+		else{
+			camShiftButton.setText("Stop tracking");
+			isTracking = true;
+		}
+	}
+
+	public void onCameraFrame(Mat scene, Rect maxRect, Mat originalFrame) {
+		System.out.println(trackRectangle.size().toString());
+		RotatedRect box =Video.CamShift(scene, trackRectangle, new TermCriteria(TermCriteria.EPS,10,1));
+		trackRectangle = box.boundingRect();
+		Point pt1 =new Point(trackRectangle.x,trackRectangle.y);
+		Point pt2 =new Point(trackRectangle.x+trackRectangle.width,trackRectangle.y+trackRectangle.height);
+
+		Rect rc = new Rect(pt1, pt2);
+		Scalar RED = new Scalar(255,0,0);
+
+		/*if(maxRect.area() < trackRectangle.area()){
+			maxRect = trackRectangle;
+		}*/
+		Imgproc.rectangle(originalFrame, pt1, pt2, RED);
+		//Imgproc.rectangle(scene, trackRectangle, RED);
+
+		cropImage(scene, trackRectangle, maxRect);
+
+		//return scene;
+	}
+
+	public void cropImage(Mat scene, Rect rc, Rect maxRect){
+		//try
+		Mat image_roi = null;
+		try {
+			image_roi = new Mat(scene,rc);
+		}
+		catch (CvException ex){
+			System.out.println("Выход за пределы изображения");
+		}
+		if(image_roi == null){
+			image_roi = new Mat(scene, maxRect);
+		}
+		saveImage(image_roi);
+		this.updateImageView(cropImageView, Utils.mat2Image(image_roi));
+	}
+
 	
 	/**
 	 * Get a frame from the opened video stream (if any)
@@ -153,6 +212,8 @@ public class ObjRecognitionController
 		{
 			try
 			{
+				capture.set(3, 640);
+				capture.set(4, 480);
 				// read the current frame
 				this.capture.read(frame);
 				
@@ -160,16 +221,17 @@ public class ObjRecognitionController
 				if (!frame.empty())
 				{
 					// init
-					Mat blurredImage = new Mat();
-					Mat hsvImage = new Mat();
-					Mat mask = new Mat();
+					blurredImage = new Mat();
+					hsvImage = new Mat();
+					biraryMask = new Mat();
 
 
 
 
 					
 					// remove some noise
-					Imgproc.blur(frame, blurredImage, new Size(7, 7));
+					int blurValue = (int) blur.getValue();
+					Imgproc.blur(frame, blurredImage, new Size(blurValue, blurValue)); //TODO было 7 7 Добавить ползунок для Blur
 					
 					// convert the frame to HSV
 					Imgproc.cvtColor(blurredImage, hsvImage, Imgproc.COLOR_BGR2HSV);
@@ -188,13 +250,18 @@ public class ObjRecognitionController
 					Utils.onFXThread(this.hsvValuesProp, valuesToPrint);
 					
 					// threshold HSV image
-					Core.inRange(hsvImage, minValues, maxValues, mask);
-					
+					Core.inRange(hsvImage, minValues, maxValues, biraryMask);
+
+					/*if(isTracking){
+						onCameraFrame(biraryMask);
+					}*/
+
+
 					// show the partial output
-					this.updateImageView(this.maskImage, Utils.mat2Image(mask));
-					
+					this.updateImageView(this.maskImage, Utils.mat2Image(biraryMask));
+
 					// find the contours and show them
-					frame = this.generateContours(mask, frame);
+					frame = this.generateContours(biraryMask, frame);
 
 				}
 				
@@ -228,10 +295,10 @@ public class ObjRecognitionController
 	
 	/**
 	 * Given a binary image containing one or more closed surfaces, use it as a
-	 * mask to find and highlight the objects contours
+	 * biraryMask to find and highlight the objects contours
 	 * 
 	 * @param maskedImage
-	 *            the binary image to be used as a mask
+	 *            the binary image to be used as a biraryMask
 	 * @param frame
 	 *            the original {@link Mat} image to be used for drawing the
 	 *            objects contours
@@ -304,12 +371,22 @@ public class ObjRecognitionController
         // Draw contours + hull results
         int biggestContourIndex = findBiggestContour(contours);
         int fingerCount = 1;
+
+
+        /*Rectan
+		if(trackingFrame == null){
+			trackingFrame = new Rect(scene.cols()/2,scene.rows()/2,50,50);
+		}
+		//System.out.println(trackingFrame.size().toString());
+		RotatedRect box =Video.CamShift(frame, trackingFrame, new TermCriteria(TermCriteria.EPS,10,1));
+		Video.CamShift()*/
         Scalar color = new Scalar(0, 255, 0);   // Green
+		Rect maxRect = null;
         for(int i=0; i < contours.size(); i++){
 
         	//choose only the biggest contour
         	if(i == biggestContourIndex){
-        		Imgproc.drawContours(frame, contours, i, new Scalar(0,0,255),2);
+        		//Imgproc.drawContours(frame, contours, i, new Scalar(0,0,255),2);
         		for(int j=0; j< defects.get(i).toList().size()-3; j+=4)
         		{
 //        			//store the depth of the defect
@@ -333,39 +410,75 @@ public class ObjRecognitionController
         					System.out.println("Distance from end to far:   " + distanceFormula(endPt,farPt));
         					System.out.println("Angle of defect:            " + getAngle(startPt,endPt,farPt));
             				//draw line from start to end
-            				Imgproc.line(frame,startPt,endPt,new Scalar(255,255,255),2);	
+            				//Imgproc.line(frame,startPt,endPt,new Scalar(255,255,255),2);
             				//draw line from start to far point
-            				Imgproc.line(frame,startPt,farPt,new Scalar(255,255,255),2);	
+            				//Imgproc.line(frame,startPt,farPt,new Scalar(255,255,255),2);
             				//draw line from end to far point
-            				Imgproc.line(frame,endPt,farPt,new Scalar(255,255,255),2);
+            				//Imgproc.line(frame,endPt,farPt,new Scalar(255,255,255),2);
             				//draw circle around far point
             				Imgproc.circle(frame,farPt,4,new Scalar(255,255,255),2);
+
         				}
         				else
         				{
 	        				//draw line from start to end
-	        				Imgproc.line(frame,startPt,endPt,new Scalar(255,0,0),2);	
+	        				//Imgproc.line(frame,startPt,endPt,new Scalar(255,0,0),2);
 	        				//draw line from start to far point
-	        				Imgproc.line(frame,startPt,farPt,new Scalar(255,0,0),2);	
+	        				//Imgproc.line(frame,startPt,farPt,new Scalar(255,0,0),2);
 	        				//draw line from end to far point
-	        				Imgproc.line(frame,endPt,farPt,new Scalar(255,0,0),2);
+	        				//Imgproc.line(frame,endPt,farPt,new Scalar(255,0,0),2);
 	        				//draw circle around far point
-	        				Imgproc.circle(frame,farPt,4,new Scalar(255,0,0),2);
+	        				//Imgproc.circle(frame,farPt,4,new Scalar(255,0,0),2);
 	        				
         				}
         			}
         		}
         		//draw convex hull of biggest contour
-                Imgproc.drawContours(frame, hullmop, i, new Scalar(0,255,255),2);
-                
+                //Imgproc.drawContours(frame, hullmop, i, new Scalar(0,255,255),2);
+
+				MatOfPoint points = hullmop.get(0);
+				maxRect = Imgproc.boundingRect(hullmop.get(0));//TODO можно попробовать сделать проверку что Area входит в область Tracking
+				for(MatOfPoint matOfPoint: hullmop){
+					Rect rect = Imgproc.boundingRect(matOfPoint);
+					if(maxRect.area() < rect.area()){
+						maxRect = rect;
+					}
+				}
+
+
+				//TODO нужно выбрать MatOfPoint с самой большой областью и оставить его
+				// Get bounding rect of contour
+				//Rect rect = Imgproc.boundingRect(points);
+
+
+				//Imgproc.boundingRect(hullmop);
+                //Imgproc.drawContours(frame, hullmop, i, new Scalar(0,255,255),2);\
+				//Imgproc.rectangle(frame,maxRect, new Scalar(0,255,255), 3); //TODO
+
+
         	}
         	else //draw smaller contours in green
         	{
-        		Imgproc.drawContours(frame, contours, i, color);
+        		//Imgproc.drawContours(frame, contours, i, color);
         		
         	}
         }
-        count.setText(fingerCount + " finger(s) detected");
+
+		Imgproc.rectangle(frame,maxRect, new Scalar(0,255,255), 3);
+		//Imgproc.rectangle(biraryMask,trackRectangle, new Scalar(255,255,0), 3);
+        if(!isTracking){
+			Imgproc.rectangle(frame,trackRectangle, new Scalar(255,255,0), 3);
+		}
+		else {
+			onCameraFrame(biraryMask, maxRect, frame);// TODO ЕСЛИ ЦЕНТРЫ НЕДАЛЕКО и квадрат больше(или же берем самые крайние точки) БЕРЕМ ЦЕНТР С ЗЕЛЕНОГО RECT
+		}
+		/*else{
+			onCameraFrame(frame);
+		}
+*/
+
+        //count.setText(fingerCount + " finger(s) detected");
+        count.setText("");
 
         return frame;
         
@@ -375,6 +488,7 @@ public class ObjRecognitionController
 	//Pre: MatOfInt4 of defect list, MatOfPoint of hand contour, and index j of defect of interest
 	private boolean isFinger(MatOfInt4 defect,MatOfPoint contour,int j)
 	{
+		/*
 		Rect boundingRect= Imgproc.boundingRect(contour);
 		int tolerance = boundingRect.height / 5;
 		double angleTol = 95;	
@@ -392,7 +506,7 @@ public class ObjRecognitionController
 			getAngle(startPt,endPt,farPt) < angleTol &&
 			endPt.y <= (boundingRect.y + boundingRect.height - boundingRect.height/4) &&
 			startPt.y <= (boundingRect.y + boundingRect.height - boundingRect.height/4))
-				return true;
+				return true;*/
 		
 		return false;
 	}	
@@ -482,6 +596,28 @@ public class ObjRecognitionController
 	protected void setClosed()
 	{
 		this.stopAcquisition();
+	}
+
+	public void setProperties(Properties properties){
+		blur.setValue(properties.getBlur());
+		hueStart.setValue(properties.getHueStart());
+		hueStop.setValue(properties.getHueStop());
+		saturationStart.setValue(properties.getSaturationStart());
+		saturationStop.setValue(properties.getSaturationStop());
+		valueStart.setValue(properties.getValueStart());
+		valueStop.setValue(properties.getValueStop());
+	}
+
+	public Properties getProperties(){
+		Properties properties = new Properties();
+		properties.setBlur(blur.getValue());
+		properties.setHueStart(hueStart.getValue());
+		properties.setHueStop(hueStop.getValue());
+		properties.setSaturationStart(saturationStart.getValue());
+		properties.setSaturationStop(saturationStop.getValue());
+		properties.setValueStart(valueStart.getValue());
+		properties.setValueStop(valueStop.getValue());
+		return properties;
 	}
 	
 }

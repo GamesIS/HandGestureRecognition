@@ -1,14 +1,28 @@
 package application;
 
 import java.io.File;
+import java.io.IOException;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import javafx.application.Platform;
+import javafx.scene.image.Image;
+import javafx.scene.layout.StackPane;
+import javafx.stage.WindowEvent;
 import org.opencv.core.Core;
+;
 
 import javafx.application.Application;
 import javafx.stage.Stage;
 import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
 import javafx.fxml.FXMLLoader;
+import org.opencv.core.Mat;
+import org.opencv.core.Size;
+import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.imgproc.Imgproc;
+
+import static application.ObjRecognitionController.cropImageView;
 
 public class Main extends Application
 {
@@ -20,6 +34,11 @@ public class Main extends Application
 	 * detects the number of fingers being held up.
 	 *
 	 */
+
+	public static ObjectMapper objectMapper = new ObjectMapper();
+	public static String RESOURCES_PATH = System.getProperty("user.dir") + "\\src\\main\\resources\\";
+	public static String PROPERTIES_FILE = RESOURCES_PATH + "properties.json";
+	private ObjRecognitionController controller;
 	@Override
 	public void start(Stage primaryStage)
 	{
@@ -41,8 +60,26 @@ public class Main extends Application
 			// show the GUI
 			primaryStage.show();
 
+			primaryStage.getScene().getWindow().addEventFilter(WindowEvent.WINDOW_CLOSE_REQUEST, this::closeWindowEvent);
+			
+			///////////////
+			StackPane cropLayout = new StackPane();
+			cropLayout.getChildren().add(cropImageView);
+
+			Scene cropScene = new Scene(cropLayout, 400, 400);
+			Stage cropWindow = new Stage();
+			cropWindow.setTitle("Crop Image");
+			cropWindow.setScene(cropScene);
+
+			cropWindow.setX(primaryStage.getX() + 200);
+			cropWindow.setY(primaryStage.getY() + 100);
+
+			cropWindow.show();
+			///////////////
+
 			// set the proper behavior on closing the application
-			ObjRecognitionController controller = loader.getController();
+			controller = loader.getController();
+			loadJson();
 			primaryStage.setOnCloseRequest((we -> controller.setClosed()));
 		}
 		catch (Exception e)
@@ -50,6 +87,41 @@ public class Main extends Application
 			e.printStackTrace();
 		}
 	}
+
+	private void closeWindowEvent(WindowEvent event) {
+		System.out.println("Exit Application");
+		saveJson();
+		Platform.exit();
+	}
+
+	private void saveJson(){
+		try {
+			File file = new File(PROPERTIES_FILE);
+			Properties properties = controller.getProperties();
+			objectMapper.writeValue(file, properties);
+		} catch (IOException e) {
+			System.out.println("Error save JSON");
+			e.printStackTrace();
+		}
+	}
+	public void loadJson() {
+		try {
+			File file = new File(PROPERTIES_FILE);
+			Properties properties = objectMapper.readValue(file, new TypeReference<Properties>(){});
+			controller.setProperties(properties);
+		} catch (IOException e) {
+			System.out.println("Error loading JSON");
+			Platform.exit();
+		}
+	}
+
+	public static void saveImage(Mat image){
+		Mat resizeimage = new Mat();
+		Size sz = new Size(50,50);
+		Imgproc.resize( image, resizeimage, sz );
+		Imgcodecs.imwrite(RESOURCES_PATH + "\\images\\1.jpg", resizeimage);
+	}
+
 
 	public static void main(String[] args)
 	{

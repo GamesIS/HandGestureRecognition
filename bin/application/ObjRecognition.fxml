@@ -58,6 +58,7 @@
                   <Font size="18.0" />
                </font></Text>
    			<Button fx:id="cameraButton" alignment="center" onAction="#startCamera" text="Start camera" />
+   			<Button fx:id="camShiftButton" alignment="center" onAction="#startCamera" text="Start tracking" />
    			<Separator />
    			<Label fx:id="hsvCurrentValues" />
    </children>
