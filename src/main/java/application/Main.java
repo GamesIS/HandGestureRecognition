@@ -1,13 +1,19 @@
 package application;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import javafx.application.Platform;
+import javafx.scene.Parent;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextArea;
 import javafx.scene.image.Image;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.stage.Modality;
 import javafx.stage.WindowEvent;
 import org.opencv.core.Core;
 ;
@@ -36,7 +42,7 @@ public class Main extends Application
 	 */
 
 	public static ObjectMapper objectMapper = new ObjectMapper();
-	public static String RESOURCES_PATH = System.getProperty("user.dir") + "\\src\\main\\resources\\";
+	public static String RESOURCES_PATH = System.getProperty("user.dir") + "\\resources\\";
 	public static String PROPERTIES_FILE = RESOURCES_PATH + "properties.json";
 	private ObjRecognitionController controller;
 	@Override
@@ -44,6 +50,13 @@ public class Main extends Application
 	{
 		try
 		{
+			try {
+				startOpenCV();
+				//throw new Exception("ex");
+			}catch (Exception e){
+				showError(e);
+			}
+			//Thread.setDefaultUncaughtExceptionHandler(Main::showError);
 			// load the FXML resource
 			FXMLLoader loader = new FXMLLoader(Main.class.getClassLoader().getResource("ObjRecognition.fxml"));
 			// store the root element so that the controllers can use it
@@ -54,11 +67,21 @@ public class Main extends Application
 			Scene scene = new Scene(root, 1000, 600);
 			//scene.getStylesheets().add(Main.class.getClassLoader().getResource("application.css").toExternalForm());
 			// create the stage with the given title and the previously created
+			primaryStage.setOnCloseRequest(evt -> {
+				Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "Do you really want to close this applicetion?", ButtonType.YES, ButtonType.NO);
+				ButtonType result = alert.showAndWait().orElse(ButtonType.NO);
+
+				if (ButtonType.NO.equals(result)) {
+					// no choice or no clicked -> don't close
+					evt.consume();
+				}
+			});
 			// scene
 			primaryStage.setTitle("Object Recognition");
 			primaryStage.setScene(scene);
 			// show the GUI
 			primaryStage.show();
+
 
 			primaryStage.getScene().getWindow().addEventFilter(WindowEvent.WINDOW_CLOSE_REQUEST, this::closeWindowEvent);
 			
@@ -84,8 +107,53 @@ public class Main extends Application
 		}
 		catch (Exception e)
 		{
-			e.printStackTrace();
+			showError(e);
 		}
+	}
+
+	private void startOpenCV(){
+		String opencvpath = System.getProperty("user.dir") + "\\resources\\native\\";
+		try{
+			System.load(opencvpath +"\\x64\\"+ Core.NATIVE_LIBRARY_NAME + ".dll");
+		}
+		catch (Throwable e){
+			try {
+				System.load(opencvpath +"\\x86\\"+ Core.NATIVE_LIBRARY_NAME + ".dll");
+			}
+			catch (Throwable ex){
+				showError(ex);
+			}
+			//log(getStackTrace(e));
+		}
+	}
+
+	private static void showError(Throwable e) {
+		Alert alert = new Alert(Alert.AlertType.ERROR);
+		alert.setTitle("Error alert");
+		alert.setHeaderText(e.getMessage());
+
+		VBox dialogPaneContent = new VBox();
+
+		Label label = new Label("Stack Trace:");
+
+		String stackTrace = getStackTrace(e);
+		TextArea textArea = new TextArea();
+		textArea.setText(stackTrace);
+
+		dialogPaneContent.getChildren().addAll(label, textArea);
+
+		// Set content for Dialog Pane
+		alert.getDialogPane().setContent(dialogPaneContent);
+
+		alert.showAndWait();
+	}
+
+	private static String getStackTrace(Throwable e) {
+		StringWriter sw = new StringWriter();
+		PrintWriter pw = new PrintWriter(sw);
+		e.printStackTrace(pw);
+		String s = sw.toString();
+		return s;
 	}
 
 	private void closeWindowEvent(WindowEvent event) {
@@ -125,37 +193,20 @@ public class Main extends Application
 
 	public static void main(String[] args)
 	{
-		String libpath = System.getProperty("java.library.path");
-		//libpath = libpath + ";C:/Users/Ilya/Desktop/ObjectDetection/lib/native";
-		System.out.println(System.setProperty("java.library.path", libpath));
-
-		String opencvpath = System.getProperty("user.dir") + "\\lib\\native\\";
-		System.out.println(opencvpath);
-		String libPath = System.getProperty("java.library.path");
-		System.out.println(libPath);
-		System.out.println(opencvpath + Core.NATIVE_LIBRARY_NAME + ".dll");
-		System.load(opencvpath + Core.NATIVE_LIBRARY_NAME + ".dll");
-
-		//Runtime.getRuntime().loadLibrary("C:/Users/Ilya/Desktop/ObjectDetection/lib/opencv_java401.dll");
-		//loadNativeLibrary("C:/Users/Ilya/Desktop/ObjectDetection/lib/native", "opencv_java401.dll");
-		//System.loadLibrary("opencv_java401");
-		//System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
-
 		launch(args);
 	}
+	public static void log(String text)
+	{
+		File tmpFile = null;
+		try {
+			tmpFile = new File(RESOURCES_PATH + "\\test.txt");
+			FileWriter writer = new FileWriter(tmpFile);
+			writer.write(text);
+			writer.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 
-	private static synchronized boolean loadNativeLibrary(String path, String name) {
-		File libPath = new File(path, name);
-		if (libPath.exists()) {
-			try {
-				System.load("C:/Users/Ilya/Desktop/ObjectDetection/lib/native/opencv_java401.dll");
-				return true;
-			} catch (UnsatisfiedLinkError e) {
-				System.err.println(e);
-				return false;
-			}
 
-		} else
-			return false;
 	}
 }
