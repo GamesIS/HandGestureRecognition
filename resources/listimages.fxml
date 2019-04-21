@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.canvas.Canvas?>
+<?import javafx.scene.chart.LineChart?>
+<?import javafx.scene.chart.NumberAxis?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.GridPane?>
+<AnchorPane prefHeight="708.0" prefWidth="1097.0" xmlns="http://javafx.com/javafx/8.0.141"
+            xmlns:fx="http://javafx.com/fxml/1" fx:controller="application.controller.ListImagesController">
+    <children>
+        <TableView fx:id="imageTable" layoutX="612.0" layoutY="35.0" prefHeight="172.0" prefWidth="174.0">
+            <columns>
+                <TableColumn fx:id="pathColumn" prefWidth="75.0" text="C1"/>
+                <TableColumn fx:id="nameColumn" prefWidth="75.0" text="C2"/>
+            </columns>
+        </TableView>
+        <ListView fx:id="nameList" layoutX="792.0" layoutY="7.0" prefHeight="200.0" prefWidth="200.0"/>
+        <ImageView fx:id="imageView" fitHeight="187.0" fitWidth="184.0" layoutX="992.0" layoutY="7.0"
+                   pickOnBounds="true" preserveRatio="true"/>
+        <Canvas fx:id="canvas" height="600.0" layoutX="14.0" layoutY="14.0" width="600.0"/>
+        <Label fx:id="percent" layoutX="186.0" layoutY="723.0" text="Левой рисуешь, правой стираешь"/>
+        <LineChart fx:id="convergence" layoutX="556.0" layoutY="415.0" prefHeight="371.0" prefWidth="436.0">
+            <xAxis>
+                <NumberAxis side="BOTTOM" fx:id="xAxisIteration"/>
+            </xAxis>
+            <yAxis>
+                <NumberAxis fx:id="yAxisError" side="LEFT"/>
+            </yAxis>
+        </LineChart>
+        <ListView fx:id="resultList" layoutX="607.0" layoutY="7.0" prefHeight="379.0" prefWidth="184.0"/>
+        <Button fx:id="studying" layoutX="408.0" layoutY="648.0" mnemonicParsing="false" prefHeight="63.0"
+                prefWidth="136.0" text="Обучение"/>
+        <GridPane fx:id="drawGrid" layoutX="100.0" layoutY="49.0" prefHeight="607.0" prefWidth="551.0">
+        </GridPane>
+        <Button fx:id="clear" layoutX="118.0" layoutY="648.0" mnemonicParsing="false" prefHeight="63.0"
+                prefWidth="136.0" text="Очистить"/>
+        <Button fx:id="recognizeButton" layoutX="264.0" layoutY="648.0" mnemonicParsing="false" prefHeight="63.0"
+                prefWidth="136.0" text="Распознать"/>
+        <Button fx:id="save" layoutX="408.0" layoutY="723.0" mnemonicParsing="false" prefHeight="63.0" prefWidth="136.0"
+                text="Сохранить"/>
+        <TextField fx:id="nameChar" layoutX="254.0" layoutY="742.0"/>
+        <ListView fx:id="customList" layoutX="792.0" layoutY="207.0" prefHeight="178.0" prefWidth="200.0"/>
+        <ComboBox fx:id="handsBox" layoutX="114.0" layoutY="742.0" prefHeight="25.0" prefWidth="136.0"/>
+    </children>
+</AnchorPane>
