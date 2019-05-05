@@ -21,7 +21,7 @@
             </padding>
             <children>
                 <Label text="Blur" />
-                <Slider fx:id="blur" blockIncrement="2" max="51" min="1" value="1" />
+                <Slider fx:id="blur" blockIncrement="1" max="50" min="1" value="10" />
                 <Label text="Hue Start" />
                 <Slider fx:id="hueStart" blockIncrement="1" max="180" min="0" value="20" />
                 <Label text="Hue Stop" />
@@ -35,7 +35,7 @@
                 <Label text="Value Stop" />
                 <Slider fx:id="valueStop" blockIncrement="1" max="255" min="0" value="255" />
 
-                <Label text="Y_MIN" />
+                <!--<Label text="Y_MIN" />
                 <Slider fx:id="Y_MIN" blockIncrement="1" max="255" min="0" value="20" />
                 <Label text="Y_MAX" />
                 <Slider fx:id="Y_MAX" blockIncrement="1" max="255" min="0" value="50" />
@@ -46,11 +46,11 @@
                 <Label text="Cb_MIN" />
                 <Slider fx:id="Cb_MIN" blockIncrement="1" max="255" min="0" value="50" />
                 <Label text="Cb_MAX" />
-                <Slider fx:id="Cb_MAX" blockIncrement="1" max="255" min="0" value="255" />
+                <Slider fx:id="Cb_MAX" blockIncrement="1" max="255" min="0" value="255" />-->
                 <Label text="Kernel" />
                 <Slider fx:id="kernel" blockIncrement="1" max="15" min="1" value="3" />
-                <Label text="Sigma" />
-                <Slider fx:id="sigma" blockIncrement="1" max="200" min="0" value="1" />
+                <!--<Label text="Sigma" />
+                <Slider fx:id="sigma" blockIncrement="1" max="200" min="0" value="1" />-->
             </children>
         </VBox>
     </right>

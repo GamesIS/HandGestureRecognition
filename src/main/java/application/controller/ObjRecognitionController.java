@@ -45,14 +45,14 @@ public class ObjRecognitionController {
     public static final ImageView cropImageView = new ImageView();
     public static Mat currentCropImage;
     public static Mat currentCropBinaryImage;
-    public Slider Y_MIN;
+    /*public Slider Y_MIN;
     public Slider Y_MAX;
     public Slider Cr_MIN;
     public Slider Cr_MAX;
     public Slider Cb_MIN;
-    public Slider Cb_MAX;
+    public Slider Cb_MAX;*/
     public Slider kernel;
-    public Slider sigma;
+    //public Slider sigma;
     // FXML camera button
     @FXML
     private Button cameraButton;
@@ -256,7 +256,7 @@ public class ObjRecognitionController {
     public void onCameraFrame(Mat scene, Rect maxRect, Mat originalFrame) {
         //System.out.println(trackRectangle.size().toString());//TODO разрешение ищображения
         if(tmp++ == 0){
-            calcHandHist(originalFrame);
+            //calcHandHist(originalFrame);
         }
         //cv2.normalize(hand_hist, hand_hist, 0, 255, cv2.NORM_MINMAX)
 
@@ -390,8 +390,8 @@ public class ObjRecognitionController {
 
                     //frame = cutFromBinary(frame);
                     if(tmp != 0){
-                        frame = histMask(frame);
-                        //frame = cutFromBinary(frame, biraryMask);
+                        //frame = histMask(frame);
+                        frame = cutFromBinary(frame, biraryMask);
                         Imgproc.morphologyEx(frame, frame, Imgproc.MORPH_CLOSE, kernel);
                     }
 
@@ -780,14 +780,14 @@ public class ObjRecognitionController {
         saturationStop.setValue(properties.getSaturationStop());
         valueStart.setValue(properties.getValueStart());
         valueStop.setValue(properties.getValueStop());
-        Y_MAX.setValue(properties.getY_MAX());
+        /*Y_MAX.setValue(properties.getY_MAX());
         Y_MIN.setValue(properties.getY_MIN());
         Cr_MAX.setValue(properties.getCr_MAX());
         Cr_MIN.setValue(properties.getCr_MIN());
         Cb_MAX.setValue(properties.getCb_MAX());
-        Cb_MIN.setValue(properties.getCb_MAX());
+        Cb_MIN.setValue(properties.getCb_MAX());*/
         kernel.setValue(properties.getKernel());
-        sigma.setValue(properties.getSigma());
+        //sigma.setValue(properties.getSigma());
     }
 
 
@@ -800,14 +800,14 @@ public class ObjRecognitionController {
         properties.setSaturationStop(saturationStop.getValue());
         properties.setValueStart(valueStart.getValue());
         properties.setValueStop(valueStop.getValue());
-        properties.setY_MAX(Y_MAX.getValue());
+        /*properties.setY_MAX(Y_MAX.getValue());
         properties.setY_MIN(Y_MIN.getValue());
         properties.setCr_MAX(Cr_MAX.getValue());
         properties.setCr_MIN(Cr_MIN.getValue());
         properties.setCb_MAX(Cb_MAX.getValue());
-        properties.setCb_MIN(Cb_MIN.getValue());
+        properties.setCb_MIN(Cb_MIN.getValue());*/
         properties.setKernel(kernel.getValue());
-        properties.setSigma(sigma.getValue());
+        //properties.setSigma(sigma.getValue());
         return properties;
     }
 
