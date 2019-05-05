@@ -17,6 +17,7 @@ import org.ea.javacnn.data.DataBlock;
 import org.ea.javacnn.losslayers.LossLayer;
 import org.ea.javacnn.readers.ImageReader;
 import org.opencv.core.*;
+import org.opencv.highgui.HighGui;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.imgproc.Moments;
 import org.opencv.video.Video;
@@ -180,14 +181,25 @@ public class ObjRecognitionController {
     }
 
     public Mat histMask(Mat frame){
-        Mat dst = new Mat();
+       /* Mat dst = new Mat();
         Mat hsv = new Mat();
         Mat disc = new Mat();
         Imgproc.cvtColor(frame, hsv, Imgproc.COLOR_BGR2HSV);
         Imgproc.calcBackProject(Collections.singletonList(hsv), new MatOfInt(0, 1), hand_hist, dst, new MatOfFloat(0f, 180f, 0f, 256f), 1);
 
         disc = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(11, 11));
-        Imgproc.filter2D(dst, disc,-1,  dst);
+        Imgproc.filter2D(dst, disc,-1,  dst);*/
+
+        Mat forHist = frame;
+        Mat hsv = new Mat();
+        Imgproc.cvtColor(forHist, hsv, Imgproc.COLOR_BGR2HSV);
+        Mat hue = new Mat(hsv.size(), hsv.depth());
+        Core.mixChannels(Collections.singletonList(hsv), Collections.singletonList(hue), new MatOfInt(0, 0));
+
+
+        Mat backproj = new Mat();
+       Imgproc.calcBackProject(Collections.singletonList(hue), new MatOfInt(0), hist, backproj, new MatOfFloat(hueRange), 1);
+        //Image backprojImg = HighGui.toBufferedImage(backproj);
 
         /*
         cutFromBinary(){
@@ -196,24 +208,45 @@ public class ObjRecognitionController {
 
         //Imgproc.threshold(hand_hist, dst, 50,255,Imgproc.THRESH_BINARY);\
 
-        cutFromBinary(frame, dst);
+        //cutFromBinary(frame, dst);
 
         //Mat thresh = Core.merge(Cothresh, thresh, thresh))
 
-        return dst;
+        return backproj;
     }
 
 
     public static int tmp = 0;
     public static Mat hand_hist;
+    public static Mat hist;
+    public static List<Mat> hueList;
+    public static float[] hueRange;
 
     public void calcHandHist(Mat originalFrame){
-        Mat forHist = new Mat(originalFrame, trackRectangle);
+       /* Mat forHist = new Mat(originalFrame, trackRectangle);
         Imgproc.cvtColor(forHist, forHist, Imgproc.COLOR_BGR2HSV);
         hand_hist = new Mat();
         MatOfFloat histRange = new MatOfFloat(0f, 180f, 0f, 256f);
         Imgproc.calcHist(Collections.singletonList(forHist), new MatOfInt(0, 1), new Mat(), hand_hist, new MatOfInt( 180, 256), histRange);
-        Core.normalize(hand_hist, hand_hist, 0, 255, Core.NORM_MINMAX);
+        Core.normalize(hand_hist, hand_hist, 0, 255, Core.NORM_MINMAX);*/
+
+        Mat forHist = new Mat(originalFrame, trackRectangle);
+        Mat hsv = new Mat();
+        Imgproc.cvtColor(forHist, hsv, Imgproc.COLOR_BGR2HSV);
+        Mat hue = new Mat(hsv.size(), hsv.depth());
+        Core.mixChannels(Collections.singletonList(hsv), Collections.singletonList(hue), new MatOfInt(0, 0));
+
+        int bins = 25;
+        int histSize = Math.max(bins, 2);
+        hueRange = new float [2];
+        hueRange[0] = 0;
+        hueRange[1] = 180;
+
+        hist = new Mat();
+        hueList = Collections.singletonList(hue);
+        Imgproc.calcHist(hueList, new MatOfInt(0), new Mat(), hist, new MatOfInt(histSize), new MatOfFloat(hueRange), false);
+        Core.normalize(hist, hist, 0, 255, Core.NORM_MINMAX);
+
 
         //Imgproc.threshold(hand_hist, originalFrame, 50,255,0);
         //Utils.saveImage(originalFrame, "test", false);
@@ -223,7 +256,7 @@ public class ObjRecognitionController {
     public void onCameraFrame(Mat scene, Rect maxRect, Mat originalFrame) {
         //System.out.println(trackRectangle.size().toString());//TODO разрешение ищображения
         if(tmp++ == 0){
-            //calcHandHist(originalFrame);
+            calcHandHist(originalFrame);
         }
         //cv2.normalize(hand_hist, hand_hist, 0, 255, cv2.NORM_MINMAX)
 
@@ -357,8 +390,8 @@ public class ObjRecognitionController {
 
                     //frame = cutFromBinary(frame);
                     if(tmp != 0){
-                        /*frame = histMask(frame);*/
-                        frame = cutFromBinary(frame, biraryMask);
+                        frame = histMask(frame);
+                        //frame = cutFromBinary(frame, biraryMask);
                         Imgproc.morphologyEx(frame, frame, Imgproc.MORPH_CLOSE, kernel);
                     }
 
@@ -598,6 +631,51 @@ public class ObjRecognitionController {
 
     }
 
+    private Mat histAndBackproj() {
+       /* Mat hist = new Mat();
+        int h_bins = 30;
+        int s_bins = 32;
+
+        // C++:
+        //int histSize[] = { h_bins, s_bins };
+        MatOfInt mHistSize = new MatOfInt (h_bins, s_bins);
+
+        // C++:
+        //float h_range[] = { 0, 179 };
+        //float s_range[] = { 0, 255 };
+        //const float* ranges[] = { h_range, s_range };
+        //int channels[] = { 0, 1 };
+
+        MatOfFloat mRanges = new MatOfFloat(0, 179, 0, 255);
+        MatOfInt mChannels = new MatOfInt(0, 1);
+
+        // C++:
+        // calcHist( &hsv, 1, channels, mask, hist, 2, histSize, ranges, true, false );
+
+        //check 'mask', it was mMat0 in ImageManipulationsActivity
+        // 'mask' – Optional mask. If the matrix is not empty, it must be an 8-bit array of the same size as images[i] .
+        // The non-zero mask elements mark the array elements counted in the histogram.
+
+        List<Mat> lHSV = Arrays.asList(mHSV);
+
+        boolean accumulate = false;
+        Imgproc.calcHist(lHSV, mChannels, mask, hist, mHistSize, mRanges, accumulate);
+
+        // C++:
+        // normalize( hist, hist, 0, 255, NORM_MINMAX, -1, Mat() );
+        Core.normalize(hist, hist, 0, 255, Core.NORM_MINMAX, -1, new Mat());
+
+        // C++:
+        // calcBackProject( &hsv, 1, channels, hist, backproj, ranges, 1, true );
+        Mat backproj = new Mat();
+        Imgproc.calcBackProject(lHSV, mChannels, hist, backproj, mRanges, 1);
+
+        return backproj;*/
+       return null;
+    }
+
+
+
     //Pre: MatOfInt4 of defect list, MatOfPoint of hand contour, and index j of defect of interest
     private boolean isFinger(MatOfInt4 defect, MatOfPoint contour, int j) {
 
@@ -711,6 +789,7 @@ public class ObjRecognitionController {
         kernel.setValue(properties.getKernel());
         sigma.setValue(properties.getSigma());
     }
+
 
     public Properties getProperties() {
         Properties properties = new Properties();
