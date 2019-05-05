@@ -15,15 +15,15 @@ import java.util.Random;
 public class NeuralNetwork {
     private static final int HIDDEN_LAYERS = 2;
 
-    private static final int COUNT_HIDDEN_NEURON = 50 + 1;
+    private static final int COUNT_HIDDEN_NEURON = 70 + 1;
     private static final int COUNT_INPUT_NEURON = 2500 + 1;//Из-за нейрона смещения + 1
-    public static final int COUNT_OUTPUT_NEURON = 10;//Из-за кол-ва букв
+    public static final int COUNT_OUTPUT_NEURON = 9;//Из-за кол-ва букв
 
     private static final int COUNT_LAYERS = HIDDEN_LAYERS + 2;// Скрытые слои + входной и выходной слой
 
     private static final int COUNT_EDGE = COUNT_LAYERS - 1;// Количество слоев ребер = Количество слоев нейронов - 1
 
-    private static final int COUNT_EPOCH = 1500;
+    private static final int COUNT_EPOCH = 100;
 
     private static final double BIAS_NEURON = 1;// Нейрон смещения /*их можно размещать на входном слое и всех скрытых слоях, но никак не на выходном слое*/
 
@@ -348,7 +348,7 @@ public class NeuralNetwork {
             case 7:
                 return "class";
             case 8:
-                return "bad";
+                return "yeah";
             case 9:
                 return "none";
         }
@@ -373,7 +373,7 @@ public class NeuralNetwork {
                 return 6;
             case "class":
                 return 7;
-            case "bad":
+            case "yeah":
                 return 8;
             case "none":
                 return 9;

@@ -22,6 +22,8 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
+import org.ea.javacnn.data.DataBlock;
+import org.ea.javacnn.losslayers.LossLayer;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -29,7 +31,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static application.NeuralNetwork.COUNT_OUTPUT_NEURON;
-import static application.controller.ObjRecognitionController.currentCropImage;
+import static application.controller.ObjRecognitionController.*;
 
 
 public class ListImagesController {
@@ -122,12 +124,20 @@ public class ListImagesController {
             }
         });
         recognizeButton.addEventHandler(MouseEvent.MOUSE_CLICKED, mouseEvent -> {
-            recognize(getDrawImageArray());
+            //recognize(getDrawImageArray());
+            DataBlock db = new DataBlock(mr.getSizeX(), mr.getSizeY(), 1, 0);
+            db.addImageData(Utils.convertBinaryArrayToSingle(getDrawImageArray()), mr.getMaxvalue());
+            net.forward(db, false);
+            int prediction = net.getPrediction();
+            double[] out = ((LossLayer)net.layers.get(net.layers.size()-1)).getOutAct().getWeights();
+
+            recognize(prediction, out);
         });
         save.addEventHandler(MouseEvent.MOUSE_CLICKED, mouseEvent -> {
 
             //
-            Utils.saveImage(currentCropImage, (String) handsBox.getValue());
+            Utils.saveImage(currentCropImage, (String) handsBox.getValue(), false);
+            Utils.saveImage(currentCropBinaryImage, (String) handsBox.getValue(), true);
             //TODO можно еще сделать, чтобы сразу в общий список добавлялось в рантайме
             /*
             Hand ch = new Hand(getDrawImageArray(), chName);
@@ -147,7 +157,7 @@ public class ListImagesController {
 
     public void setHandComboBox(){
         ObservableList<String> handsBoxObsList= FXCollections.observableArrayList();
-        handsBoxObsList.addAll("fist", "one", "two", "three", "four", "hand", "ok", "class", "bad", "none");
+        handsBoxObsList.addAll("fist", "one", "two", "three", "four", "hand", "ok", "class", "yeah", "none");
         handsBox.setItems(handsBoxObsList);
         handsBox.setValue("none");
     }
@@ -155,6 +165,10 @@ public class ListImagesController {
     public void recognize(int[] imageArray){
         Main.getNeuralNetwork().calculate(imageArray);
         Platform.runLater(this::writePercent);
+    }
+
+    public void recognize(int prediction, double[] out) {
+        Platform.runLater(()-> writePercent(out));
     }
 
     public void recognize(int[][] imageArray){
@@ -198,7 +212,7 @@ public class ListImagesController {
 
         ObservableList<Hand> hands = FXCollections.observableArrayList();
 
-        hands.addAll(Hand.loadImages());
+        //hands.addAll(Hand.loadImages());
 
 
         customList.setItems(hands);
@@ -259,6 +273,26 @@ public class ListImagesController {
         return currentDrawImageAray;
     }
 
+    private void writePercent(double[] out) {
+        List<Sorted> sortList = new ArrayList<>();
+        for (int i = 0; i < COUNT_OUTPUT_NEURON; i++) {
+            DecimalFormat decimalFormatter = new DecimalFormat("###.###");
+            decimalFormatter.setMinimumIntegerDigits(2);
+            decimalFormatter.setMinimumFractionDigits(3);
+            sortList.add(new Sorted(mr.labels.get(i) + " " + decimalFormatter.format(out[i]), out[i]));
+
+            //obResList.add("" + NeuralNetwork.getOutputChar(i) + " = "+ decimalFormatter.format(main.getNeuralNetwork().getError(i)) +"%");
+        }
+        System.out.println();
+        Collections.sort(sortList);
+        obResList = FXCollections.observableArrayList();
+
+        for (int i = sortList.size() - 1; i >= 0; i--) {
+            obResList.add(sortList.get(i).strVal);
+        }
+        resultList.setItems(obResList);
+    }
+
     private void writePercent() {
         DecimalFormat decimalFormatter = new DecimalFormat("###.###");
         decimalFormatter.setMinimumIntegerDigits(2);
@@ -281,8 +315,9 @@ public class ListImagesController {
             obResList.add(sortList.get(i).strVal);
         }
         resultList.setItems(obResList);
-        System.out.println();
     }
+
+
 
     class Sorted implements Comparable {
         String strVal;

@@ -128,7 +128,7 @@ public class Main extends Application {
     private void startWindowCNN() {
         neuralNetwork = new NeuralNetwork();
         neuralNetwork.load();
-        hands.addAll(Hand.loadImages());
+        //hands.addAll(Hand.loadImages());
 
         cnnStage = new Stage();
         cnnStage.setTitle("NeuralNetwork");
