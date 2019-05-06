@@ -99,7 +99,7 @@ public class ListImagesController {
     @FXML
     NumberAxis yAxisError;
 
-    private static ObservableList<String> obResList;
+    public static ObservableList<String> obResList;
 
     private static StudyingThread studyingThread;
 

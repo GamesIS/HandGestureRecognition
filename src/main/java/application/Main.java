@@ -88,7 +88,7 @@ public class Main extends Application {
                 }
             });
             // scene
-            primaryStage.setTitle("Object Recognition");
+            primaryStage.setTitle("Система распознавания жестов");
             primaryStage.setScene(scene);
             // show the GUI
             primaryStage.show();
@@ -102,7 +102,7 @@ public class Main extends Application {
 
             Scene cropScene = new Scene(cropLayout, 400, 400);
             Stage cropWindow = new Stage();
-            cropWindow.setTitle("Crop Image");
+            cropWindow.setTitle("Регион интересов (ROI)");
             cropWindow.setScene(cropScene);
 
             cropWindow.setX(primaryStage.getX() + 200);

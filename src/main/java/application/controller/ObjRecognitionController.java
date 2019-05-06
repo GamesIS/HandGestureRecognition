@@ -17,19 +17,19 @@ import org.ea.javacnn.data.DataBlock;
 import org.ea.javacnn.losslayers.LossLayer;
 import org.ea.javacnn.readers.ImageReader;
 import org.opencv.core.*;
-import org.opencv.highgui.HighGui;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.imgproc.Moments;
 import org.opencv.video.Video;
 import org.opencv.videoio.VideoCapture;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+
+import static application.controller.ListImagesController.obResList;
 
 
 /**
@@ -82,7 +82,7 @@ public class ObjRecognitionController {
     @FXML
     private Label hsvCurrentValues;
     @FXML
-    private Text count;
+    private Text resultText;
 
     // a timer for acquiring the video stream
     private ScheduledExecutorService timer;
@@ -150,7 +150,7 @@ public class ObjRecognitionController {
                 this.timer.scheduleAtFixedRate(frameGrabber, 0, 33, TimeUnit.MILLISECONDS);
 
                 // update the button content
-                this.cameraButton.setText("Stop Camera");
+                this.cameraButton.setText("Выключить камеру");
             } else {
                 // log the error
                 System.err.println("Failed to open the camera connection...");
@@ -171,11 +171,11 @@ public class ObjRecognitionController {
     private void startTracking() {
         if (isTracking) {
             tmp = 0;
-            camShiftButton.setText("Start tracking");
+            camShiftButton.setText("Запустить отслеживание");
             isTracking = false;
             trackRectangle = new Rect(trackPoint1, trackPoint2);
         } else {
-            camShiftButton.setText("Stop tracking");
+            camShiftButton.setText("Выключить отслеживание");
             isTracking = true;
         }
     }
@@ -307,6 +307,15 @@ public class ObjRecognitionController {
         //Main.listImagesController.recognize(mat2Array(origCropImage));
 
         recognize(Utils.matToGrayIntArray(currentCropBinaryImage));
+        if(obResList != null){
+            if(obResList.get(0).equals("yeah 00,553")){
+                resultText.setText("Результат распознавания пусто");
+            }
+            else {
+                resultText.setText("Результат распознавания " + obResList.get(0));
+            }
+        }
+
         //Mat mGray = new Mat();
         //Imgproc.cvtColor(currentCropImage,mGray,Imgproc.COLOR_RGB2GRAY);
         //recognize(Utils.matToGrayIntArray(mGray));
@@ -623,8 +632,7 @@ public class ObjRecognitionController {
 		}
 */
 
-        //count.setText(fingerCount + " finger(s) detected");
-        count.setText("");
+        //resultText.setText(fingerCount + " finger(s) detected");
 
         return frame;
 
