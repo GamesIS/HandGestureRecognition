@@ -241,6 +241,7 @@ public class Main extends Application {
             Scene scene = new Scene(cnnLayout);
             cnnStage.setScene(scene);
             cnnStage.show();
+            cnnStage.toBack();
         } catch (IOException e) {
             e.printStackTrace();
         }

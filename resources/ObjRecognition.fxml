@@ -56,20 +56,9 @@
     </right>
     <center>
         <HBox alignment="CENTER" spacing="5">
-            <padding>
-                <Insets left="5" right="5" />
-            </padding>
             <children>
-                <ImageView fx:id="originalFrame" rotate="180.0">
-                    <rotationAxis>
-                        <Point3D y="1.0" />
-                    </rotationAxis>
-                </ImageView>
-                <ImageView fx:id="maskImage" rotate="180.0">
-                    <rotationAxis>
-                        <Point3D y="1.0" />
-                    </rotationAxis>
-                </ImageView>
+                <ImageView fx:id="originalFrame"/>
+                <ImageView fx:id="maskImage"/>
             </children>
         </HBox>
     </center>
